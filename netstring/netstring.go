@@ -1,6 +1,9 @@
 package netstring
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
 	"strconv"
 )
 
@@ -29,6 +32,16 @@ func Encode(payload []byte) (raw []byte) {
 	buffer = append(buffer, END_SYMBOL)
 
 	return buffer
+}
+
+func Encode2(payload []byte) (raw []byte) {
+	bodySize := uint32(len(payload))
+
+	var buffer bytes.Buffer
+	binary.Write(&buffer, binary.LittleEndian, bodySize)
+	buffer.Write(payload)
+
+	return buffer.Bytes()
 }
 
 type Decoder struct {
@@ -135,4 +148,20 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+func (decoder *Decoder) Feed2(data []byte) {
+	total_len := uint32(len(data))
+	if total_len < 4 {
+		return
+	}
+	var packageSize uint32
+	rd := bytes.NewReader(data[:4])
+	binary.Read(rd, binary.LittleEndian, &packageSize)
+	if packageSize > total_len-4 {
+		return
+	}
+	body := data[4 : 4+packageSize]
+	fmt.Printf("body len:%v totallen:%v data:%+v\n", packageSize, total_len, string(body))
+	decoder.outputCh <- body
+	decoder.Reset()
 }

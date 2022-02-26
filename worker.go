@@ -304,7 +304,9 @@ func NewWorker(options ...Option) (worker *Worker, err error) {
 
 	doneCh := make(chan error)
 
+	fmt.Printf("worker swaper done:%+v worker:%+v\n", worker.spawnDone, *worker)
 	channel.Once(strconv.Itoa(pid), func(event string) {
+		fmt.Printf("--worker pid:%v spawnDone:%v event:%v\n", pid, worker.spawnDone, event)
 		if atomic.CompareAndSwapUint32(&worker.spawnDone, 0, 1) && event == "running" {
 			logger.Debug("worker process running [pid:%d]", pid)
 			worker.Emit("@success")

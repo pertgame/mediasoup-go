@@ -141,7 +141,7 @@ func (c *Channel) Request(method string, internal interface{}, data ...interface
 	}
 	rawData, _ := json.Marshal(req)
 
-	ns := netstring.Encode(rawData)
+	ns := netstring.Encode2(rawData)
 
 	if len(ns) > NS_MESSAGE_MAX_LEN {
 		rsp.err = errors.New("Channel request too big")
@@ -199,7 +199,7 @@ func (c *Channel) runReadLoop() {
 		}
 		data := buf[:n]
 
-		decoder.Feed(data)
+		decoder.Feed2(data)
 
 		if decoder.Length() > NS_PAYLOAD_MAX_LEN {
 			c.logger.Error("receiving buffer is full, discarding all data into it")
@@ -235,7 +235,7 @@ func (c *Channel) processMessage(nsPayload []byte) {
 		Error    string `json:"error,omitempty"`
 		Reason   string `json:"reason,omitempty"`
 		// notification
-		TargetId string `json:"targetId,omitempty"`
+		TargetId int    `json:"targetId,omitempty"`
 		Event    string `json:"event,omitempty"`
 		// common data
 		Data json.RawMessage `json:"data,omitempty"`
@@ -265,8 +265,8 @@ func (c *Channel) processMessage(nsPayload []byte) {
 		} else {
 			c.logger.Error("received response is not accepted nor rejected [method:%s, id:%s]", sent.method, sent.id)
 		}
-	} else if len(msg.TargetId) > 0 && len(msg.Event) > 0 {
-		c.SafeEmit(msg.TargetId, msg.Event, msg.Data)
+	} else if msg.TargetId > 0 && len(msg.Event) > 0 {
+		c.SafeEmit(fmt.Sprintf("%v", msg.TargetId), msg.Event, msg.Data)
 	} else {
 		c.logger.Error("received message is not a response nor a notification")
 	}
